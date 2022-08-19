@@ -4,12 +4,9 @@
 
 #addr=cms-popdb-alarms@cern.ch
 #addr=vkuznet@gmail.com
-addr=cms-comp-monit-alerts@cern.ch
 
 # DO NOT EDIT BELOW THIS LINE
 # for Spark 2.X
-export PATH=$PATH:/usr/hdp/hadoop/bin
-export HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # find out which date we should use to run the script
 year=`date +'%Y'`
@@ -19,14 +16,14 @@ hdir=hdfs:///project/monitoring/archive/condor/raw/metric
 tmpDirs=`hadoop fs -ls ${hdir}/$year/$month | grep tmp$ | awk '{print $8}' | sed -e "s,\.tmp,,g" -e "s,${hdir},,g"`
 pat=`echo $tmpDirs | tr ' ' '|'`
 lastSnapshot=`hadoop fs -ls ${hdir}/$year/$month | egrep -v ${pat} | tail -1 | awk '{print $8}'`
-#echo "Last available snapshot"
-#echo $lastSnapshot
+echo "Last available snapshot"
+echo $lastSnapshot
 date=`echo $lastSnapshot | sed -e "s,${hdir},,g" -e "s,/,,g"`
-odir=hdfs:///cms/dbs_condor
+odir=/tmp/kmeliush/dbc_condor_cron
 
 # set log area and environment
 me=$(dirname "$0")
-wdir=`echo $me | sed -e "s,/bin,,g"`
+wdir=$(dirname "$me")
 mkdir -p $wdir/logs
 log=$wdir/logs/dbs_condor-`date +%Y%m%d`.log
 export PYTHONPATH=$wdir/src/python:$PYTHONPATH
@@ -62,38 +59,10 @@ if [ -n "${check}" ]; then
 fi
 
 # setup to run the script
-cmd="$wdir/bin/run_spark dbs_condor.py --yarn --fout=$odir --date=$date"
+cmd="$wdir/src/python/run_spark dbs_condor.py --yarn --fout=$odir --date=$date"
 #echo "Will execute ..."
 #echo $cmd
 msg="Error while executing $cmd on $USER@`hostname` log at $log"
-set -e
-#trap "echo \"$msg\" | mail -s \"Cron alert run_spark dbs_condor\" \"$addr\"" ERR
-# Call func function on exit
-trap func exit
+echo "$msg"
 # Declare the function
-function func() {
-    local status=$?
-    if [ $status -ne 0 ]; then
-        local msg="cron4dbs_condor completed with non zero status"
-        if [ -f /data/cms/bin/amtool ]; then
-            local expire=`date -d '+1 hour' --rfc-3339=ns | tr ' ' 'T'`
-            local urls="http://cms-monitoring.cern.ch:30093 http://cms-monitoring-ha1.cern.ch:30093 http://cms-monitoring-ha2.cern.ch:30093"
-            for url in $urls; do
-                /data/cms/bin/amtool alert add cron4dbs_condor \
-                    alertname=cron4dbs_condor severity=medium tag=cronjob alert=amtool \
-                    --end=$expire \
-                    --annotation=summary="$msg" \
-                    --annotation=date="`date`" \
-                    --annotation=hostname="`hostname`" \
-                    --annotation=status="$status" \
-                    --annotation=command="$cmd" \
-                    --annotation=log="$log" \
-                    --alertmanager.url=$url
-            done
-        else
-            echo "$msg" | mail -s "Cron alert cron4dbs_condor" "$addr"
-        fi
-    fi
-}
-
 $cmd >> $log 2>&1

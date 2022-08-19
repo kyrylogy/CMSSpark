@@ -22,6 +22,10 @@ from pyspark.sql.functions import udf
 from pyspark.sql.types import DoubleType
 
 # CMSSpark modules
+import sys, os
+sys.path.append(f"{os.getcwd()}")
+print(os.getcwd())
+print(sys.path)
 from CMSSpark.spark_utils import dbs_tables, phedex_tables, print_rows, unionAll
 from CMSSpark.spark_utils import spark_context, condor_tables, split_dataset
 from CMSSpark.utils import info, split_date

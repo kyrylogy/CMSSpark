@@ -19,6 +19,9 @@ else
     cmsspark=$droot/$1
 fi
 
+
+
+echo "CMSSpark location: $cmsspark"
 # enable simple secret to run in non-yarn mode
 conf=""
 hostname=`hostname -s`
@@ -54,12 +57,9 @@ fi
 lxplus7=`cat /etc/redhat-release  | grep 7`
 lxplus7_setup=""
 if [ -n "$lxplus7" ] && [ -n "`hostname -s | grep ^lxplus`" ]; then
-    if [ -f /cvmfs/sft.cern.ch/lcg/views/LCG_94/x86_64-centos7-gcc7-opt/setup.sh ] && \
-        [ -f /cvmfs/sft.cern.ch/lcg/etc/hadoop-confext/hadoop-setconf.sh ]; then
-        source /cvmfs/sft.cern.ch/lcg/views/LCG_94/x86_64-centos7-gcc7-opt/setup.sh
-        source /cvmfs/sft.cern.ch/lcg/etc/hadoop-confext/hadoop-setconf.sh analytix
-        lxplus7_setup="true"
-    fi
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc8-opt/setup.sh
+    source /cvmfs/sft.cern.ch/lcg/etc/hadoop-confext/hadoop-swan-setconf.sh analytix
+    lxplus7_setup="true"
 fi
 
 # set avro jars
