@@ -97,3 +97,25 @@ function func() {
 }
 
 $cmd >> $log 2>&1
+
+# ----- CRON SUCCESS CHECK -----
+# This cron job modifies yesterdays data every day, and treshold should be 12 hours - 43200
+TIME_TRESHOLD=43200
+# 0 */3 * * * /data/cms/CMSSpark/bin/cron4dbs_condor
+# Size tresholds
+campaign=200000000 # (20MB)
+dataset=200000000 # (20MB)
+era=100000 # (100KB)
+release=100000 # (100KB)
+
+# BUG: file is not generated on the last day of the month -> won't work properly 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATE_HDFS=$(date -d "yesterday" '+%Y/%m/%d')
+# Check all 4 directories with yesterdays date modified during last 12 hours with corresponding size tresholds
+# exits 210 if one of the checks fails
+trap 'EC'=210 ERR
+/bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/campaign/"$DATE_HDFS" "$TIME_TRESHOLD" $campaign || EC=$?
+/bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/dataset/"$DATE_HDFS" "$TIME_TRESHOLD" $dataset || EC=$? 
+/bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/era/"$DATE_HDFS" "$TIME_TRESHOLD" $era || EC=$?
+/bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/release/"$DATE_HDFS" "$TIME_TRESHOLD" $release || EC=$?
+# RUNNING COMMANDS AFTER THIS POINT WILL CHANGE EXIT CODE
