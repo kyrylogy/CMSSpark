@@ -108,7 +108,7 @@ dataset=200000000 # (20MB)
 era=100000 # (100KB)
 release=100000 # (100KB)
 
-# BUG: file is not generated on the last day of the month -> won't work properly 
+# BUG: file is not generated on the last day of the month
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATE_HDFS=$(date -d "yesterday" '+%Y/%m/%d')
 # Check all 4 directories with yesterdays date modified during last 12 hours with corresponding size tresholds
