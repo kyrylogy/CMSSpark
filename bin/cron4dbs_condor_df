@@ -10,11 +10,10 @@ addr=cms-comp-monit-alerts@cern.ch
 
 # DO NOT EDIT BELOW THIS LINE
 # for Spark 2.X
-export PATH=$PATH:/usr/hdp/hadoop/bin
 idir=$1
 mkdir -p $idir
 me=$(dirname "$0")
-wdir=`echo $me | sed -e "s,/bin,,g"`
+wdir=$(dirname $me)
 mkdir -p $wdir/logs
 log=$wdir/logs/dbs_condor_df-`date +%Y%m%d`.log
 export PYTHONPATH=$wdir/src/python:$PYTHONPATH
@@ -22,7 +21,7 @@ export PATH=$wdir/bin:$PATH
 
 # Kerberos
 conf=$wdir/etc/conf.json
-keytab=`cat $conf | python -c "import sys, json; print json.load(sys.stdin)['keytab']"`
+keytab=`cat $conf | python -c "import sys, json; print(json.load(sys.stdin)['keytab'])"`
 principal=`klist -k "$keytab" | tail -1 | awk '{print $2}'`
 echo "principal=$principal" >> $log 2>&1
 kinit $principal -k -t "$keytab" >> $log 2>&1
@@ -42,6 +41,7 @@ year=`date +%Y`
 month=`date +%m`
 day=`date +%d -d "yesterday"`
 odir=${idir}/${year}/data
+mkdir -p $odir
 hadoop fs -ls $pdir/$year/$month/$day 2>&1 1>& /dev/null
 if [ $? -eq 0 ]; then
     idir=$pdir/$year/$month/$day
@@ -52,32 +52,15 @@ if [ $? -eq 0 ]; then
 else
     echo "HDFS area $pdir/$year/$month/$day does not exist ..." >> $log
 fi
-set -e
-# Call func function on exit
-trap func exit
-# Declare the function
-function func() {
-    local status=$?
-    if [ $status -ne 0 ]; then
-        local msg="cron4dbs_condor_df completed with non zero status"
-        if [ -f /data/cms/bin/amtool ]; then
-            local expire=`date -d '+1 hour' --rfc-3339=ns | tr ' ' 'T'`
-            local urls="http://cms-monitoring.cern.ch:30093 http://cms-monitoring-ha1.cern.ch:30093 http://cms-monitoring-ha2.cern.ch:30093"
-            for url in $urls; do
-                /data/cms/bin/amtool alert add cron4dbs_condor_df \
-                    alertname=cron4dbs_condor_df severity=medium tag=cronjob alert=amtool \
-                    --end=$expire \
-                    --annotation=summary="$msg" \
-                    --annotation=date="`date`" \
-                    --annotation=hostname="`hostname`" \
-                    --annotation=status="$status" \
-                    --annotation=command="hadoop" \
-                    --annotation=log="$log" \
-                    --alertmanager.url=$url
-            done
-        else
-            echo $msg
-            echo "$msg" | mail -s "Cron alert cron4dbs_condor_df" "$addr"
-        fi
-    fi
-}
+
+# ----- CRON SUCCESS CHECK -----
+# This cron job daily collects data from hdfs:///cms/dbs_condor/dataset into a single .csv, so time treshold should be 12 hours:
+TIME_TRESHOLD=43200 
+# 0 20 * * * /data/cms/CMSSpark/bin/cron4dbs_condor_df /data/cms/pop-data
+# Size treshold
+SIZE_TRESHOLD=25000000 # (25MB as 50MB is average)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+/bin/bash "$SCRIPT_DIR"/utils/check_utils.sh check_file_status $fout $TIME_TRESHOLD $SIZE_TRESHOLD
+# RUNNING COMMANDS AFTER THIS POINT WILL CHANGE EXIT CODE
+

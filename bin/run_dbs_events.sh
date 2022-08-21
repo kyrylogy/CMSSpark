@@ -8,10 +8,10 @@ fi
 wdir=$1
 odir=$wdir/dbs_events
 odf=$wdir/dbs_events.csv
-hdir=hdfs:///cms/dbs_events
+hdir=/tmp/kmeliush/
 
 # remove existing hadoop area
-hadoop fs -rm -r -skipTrash $hdir 2>&1 1>&/dev/null
+hadoop fs -rm -r -skipTrash $odir 2>&1 1>&/dev/null
 if [ -d $odir ]; then
     rm -rf $odir
 fi
@@ -21,7 +21,7 @@ mkdir -p $odir
 echo "PATH=$PATH"
 echo "PYTHONPATH=$PYTHONPATH"
 echo "PWD=$PWD"
-run_spark dbs_events.py --yarn --fout=$hdir
+/bin/bash src/python/run_spark dbs_events.py --yarn --fout=$wdir
 
 # get back data frame parts
 hadoop fs -get /cms/dbs_events $odir/

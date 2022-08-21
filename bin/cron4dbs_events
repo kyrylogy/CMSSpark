@@ -4,12 +4,9 @@
 
 #addr=cms-popdb-alarms@cern.ch
 #addr=vkuznet@gmail.com
-addr=cms-comp-monit-alerts@cern.ch
 
 # DO NOT EDIT BELOW THIS LINE
 # for Spark 2.X
-export PATH=$PATH:/usr/hdp/hadoop/bin
-export HADOOP_CONF_DIR=/etc/hadoop/conf
 odir=$1
 #keytab=`cat $conf | python -c "import sys, json; print json.load(sys.stdin)['keytab']"`
 #principal=`klist -k "$keytab" | tail -1 | awk '{print $2}'`
@@ -22,41 +19,12 @@ odir=$1
 
 # setup to run the script
 me=$(dirname "$0")
-wdir=`echo $me | sed -e "s,/bin,,g"`
+wdir=$(dirname "$me")
 mkdir -p $wdir/logs
 log=$wdir/logs/dbs_events-`date +%Y%m%d`.log
 export PYTHONPATH=$wdir/src/python:$PYTHONPATH
 export PATH=$wdir:$wdir/bin:$PATH
 cmd="$wdir/bin/run_dbs_events.sh $odir"
 msg="Error while executing $cmd on $USER@`hostname` log at $log"
-set -e
-#trap "echo \"$msg\" | mail -s \"Cron alert run_dbs_events.sh\" \"$addr\"" ERR
-# Call func function on exit
-trap func exit
-# Declare the function
-function func() {
-    local status=$?
-    if [ $status -ne 0 ]; then
-        local msg="cron4dbs_events completed with non zero status"
-        if [ -f /data/cms/bin/amtool ]; then
-            local expire=`date -d '+1 hour' --rfc-3339=ns | tr ' ' 'T'`
-            local urls="http://cms-monitoring.cern.ch:30093 http://cms-monitoring-ha1.cern.ch:30093 http://cms-monitoring-ha2.cern.ch:30093"
-            for url in $urls; do
-                /data/cms/bin/amtool alert add cron4dbs_events \
-                    alertname=cron4dbs_events severity=medium tag=cronjob alert=amtool \
-                    --end=$expire \
-                    --annotation=summary="$msg" \
-                    --annotation=date="`date`" \
-                    --annotation=hostname="`hostname`" \
-                    --annotation=status="$status" \
-                    --annotation=command="$cmd" \
-                    --annotation=log="$log" \
-                    --alertmanager.url=$url
-            done
-        else
-            echo "$msg" | mail -s "Cron alert cron4dbs_events" "$addr"
-        fi
-    fi
-}
 
 $cmd >> $log 2>&1
