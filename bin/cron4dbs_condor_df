@@ -80,3 +80,13 @@ function func() {
         fi
     fi
 }
+
+# ----- CRON SUCCESS CHECK -----
+# This cron job collects data from dbs_condor/dataset into a single .csv daily, time treshold should be 12 hours
+TIME_TRESHOLD=43200
+# 0 20 * * * /data/cms/CMSSpark/bin/cron4dbs_condor_df /data/cms/pop-data
+SIZE_TRESHOLD=25000000 # (25MB as 50MB is average)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+/bin/bash "$SCRIPT_DIR"/utils/check_utils.sh check_file_status $fout $TIME_TRESHOLD $SIZE_TRESHOLD
+# RUNNING COMMANDS AFTER THIS POINT WILL CHANGE EXIT CODE
