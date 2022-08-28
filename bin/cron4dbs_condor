@@ -118,4 +118,5 @@ trap 'EC'=210 ERR
 /bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/dataset/"$DATE_HDFS" "$TIME_TRESHOLD" $dataset || EC=$? 
 /bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/era/"$DATE_HDFS" "$TIME_TRESHOLD" $era || EC=$?
 /bin/bash  "$SCRIPT_DIR"/utils/check_utils.sh check_hdfs "$odir"/release/"$DATE_HDFS" "$TIME_TRESHOLD" $release || EC=$?
+exit $EC
 # RUNNING COMMANDS AFTER THIS POINT WILL CHANGE EXIT CODE
