@@ -66,18 +66,24 @@ function check_es_hits {
 #arg3: size threshold in bytes
 function check_hdfs {
 
+    if ! hadoop fs -test -d $1; then
+        # directory doesn't exist
+        exit 210
+    fi
+
+
     CURTIME=$(date +%s)
     FILETIME=$(expr $(hadoop fs -stat "%Y" $1) / 1000 ) # convert ms to s
     FILESIZE=($(hadoop fs -du -s $1)%% *) # remove data after space (returns '{size} {path}')
     TIMEDIFF=$(expr $CURTIME - $FILETIME)
 
-    if [ $FILESIZE -lt $3 ]; then
-        # file is smaller than specified treshold
+    if [ $TIMEDIFF -gt $2 ]; then
+        # file wasn't modified during last $2 seconds
         exit 210
     fi
 
-    if [ $TIMEDIFF -gt $2 ]; then
-        # file wasn't modified during last $2 seconds
+    if [ $FILESIZE -lt $3 ]; then
+        # file is smaller than specified treshold
         exit 210
     fi
 }
